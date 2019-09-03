@@ -27,10 +27,8 @@ from RiverNetwork import RiverNetwork
 
 structure1 = RiverNetwork('data/network-structure-1.xlsx')
 
-# +
 structure1.print_nodes()
 structure1.print_arcs()
-# -
 
 structure1.draw()
 

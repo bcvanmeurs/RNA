@@ -1,4 +1,5 @@
 *.ipynb
 *.pyc
 .vscode
-!notebooks/*.ipynb
+!docs/*.ipynb
+_build

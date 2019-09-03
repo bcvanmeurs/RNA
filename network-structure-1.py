@@ -27,9 +27,6 @@ from RiverNetwork import RiverNetwork
 
 structure1 = RiverNetwork('data/network-structure-1.xlsx')
 
-structure1.print_nodes()
-structure1.print_arcs()
-
 structure1.draw()
 
 structure1.draw_base_loads()
@@ -38,7 +35,7 @@ structure1.draw_base_loads()
 shape = np.zeros(30)
 shape[4] = 1
 shape[5] = 3
-shape[6] = 40
+shape[6] = 10
 shape[7] = 3
 shape[8] = 1
 structure1.set_shape('S.1',30,shape)
@@ -51,7 +48,3 @@ structure1.draw_Qin(True)
 structure1.calc_flow_propagation(30)
 
 structure1.draw_Qin()
-
-structure1.draw()
-
-

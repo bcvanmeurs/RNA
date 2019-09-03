@@ -9,22 +9,25 @@ class RiverNetwork:
     def __init__(self, data_location):
         # load network
 
-        df = pd.read_excel(data_location)
-        self.df = df
-        
+        df_nodes = pd.read_excel(data_location,sheet_name='nodes')
+        df_nodes = df_nodes.astype({'source':bool,'sink':bool})
+        self.df_node = df_nodes
+        df_edges = pd.read_excel(data_location,sheet_name='edges')
+        self.df_edges = df_edges
+
         # check available columns: node, pnode, type, avg_flow, fraction
         # check if type source has no previous node
         # check if type link/sink has previous node
         # check if every node has single position and flow
         
-        sources = df[df.pnode.isna()]
-        self.sources = sources
-        self.sourcenodes = set(sources['node'])
-        links  = df[df.pnode.notna()]
-        self.links = links
+        # Get all nodes and store as dataframe and as list
+        self.nodes = list(df_nodes.node)
+        sources = df_nodes[df_nodes.source]
+        self.sourcenodes = list(sources.node)
+        sinks = df_nodes[df_nodes.sink]
+        self.sinknodes = list(sinks.node)
         
         # Get nodes and construct graph
-        self.nodes = set(df['node'])
         G = nx.DiGraph()
         G.add_nodes_from(self.nodes)
         
@@ -33,7 +36,7 @@ class RiverNetwork:
             G.nodes[row['node']]['avg_flow'] = row['avg_flow']
         
         # add edges
-        for index, row in links.iterrows():
+        for index, row in df_edges.iterrows():
             G.add_edge(row['pnode'], row['node'], weight=1, x=row['x'], k=row['k'], C = calc_C_auto_dt(row['k'],row['x']) ) # change weigths to fractions
         
         self.G = G
@@ -48,7 +51,7 @@ class RiverNetwork:
         
         # extract postions for drawing
         # what if no positions are given
-        positions = df[df.draw_y.notna() & df.draw_x.notna()]
+        positions = df_nodes[df_nodes.draw_y.notna() & df_nodes.draw_x.notna()]
         positions = positions[['node','draw_x','draw_y']]
         coords = list(zip( 0.5*positions['draw_x'] ,  -1*positions['draw_y'] ))
         pos = dict(zip(positions.node,coords))

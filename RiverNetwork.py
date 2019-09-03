@@ -6,13 +6,13 @@ from fit_muskingum import calc_C_auto_dt
 
 class RiverNetwork:
     
-    def __init__(self, data_location):
+    def __init__(self, excel_location,wave_shapes_location=None):
         # load network
 
-        df_nodes = pd.read_excel(data_location,sheet_name='nodes')
+        df_nodes = pd.read_excel(excel_location,sheet_name='nodes')
         df_nodes = df_nodes.astype({'source':bool,'sink':bool})
         self.df_node = df_nodes
-        df_edges = pd.read_excel(data_location,sheet_name='edges')
+        df_edges = pd.read_excel(excel_location,sheet_name='edges')
         self.df_edges = df_edges
 
         # check available columns: node, pnode, type, avg_flow, fraction
@@ -70,7 +70,8 @@ class RiverNetwork:
             edge_labels[edge] = {'string':kx_string, 'xpos':xpos, 'ypos':ypos}
         self.edge_labels = edge_labels
     
-        self.waveshapes = pd.read_excel('./data/wave_shapes.xls', index_col=0).T
+        if wave_shapes_location:
+            self.waveshapes = pd.read_excel(wave_shapes_location, index_col=0).T
         
         # Determine calculation order
         self.calculation_order = list(reversed(list(nx.edge_bfs(G,'E.1','reverse'))))

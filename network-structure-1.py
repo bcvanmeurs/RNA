@@ -25,7 +25,7 @@ import numpy as np
 
 from RiverNetwork import RiverNetwork
 
-structure1 = RiverNetwork('data/network-structure-1.xlsx')
+structure1 = RiverNetwork('data/network-structure-1.xlsx',wave_shapes_location='data/wave_shapes.xls')
 
 structure1.draw()
 

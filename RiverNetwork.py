@@ -128,6 +128,8 @@ class RiverNetwork:
             flow_array = np.full( 10, flow)
             plt.plot(t,flow_array,label=node_str)
             
+        plt.ylabel('Flow, $Q$ [m$^3$/s]')
+        plt.xlabel('Timesteps')
         plt.legend()
     
     def draw_Qin(self,only_sources=False):
@@ -145,6 +147,8 @@ class RiverNetwork:
                     t = np.arange(len(flow))
                     plt.plot(t,flow,label=node_str)
             
+        plt.ylabel('Flow, $Q$ [m$^3$/s]')
+        plt.xlabel('Timesteps')
         plt.legend()
         
     def draw_Qout(self):
@@ -158,6 +162,8 @@ class RiverNetwork:
                 plt.plot(t,Qin,label=node_str+ ' Qin')
                 plt.plot(t,Qout,label=node_str+ ' Qout')
                 
+        plt.ylabel('Flow, $Q$ [m$^3$/s]')
+        plt.xlabel('Timesteps')
         plt.legend()
     
     def calc_base_load(self):

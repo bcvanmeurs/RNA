@@ -31,7 +31,7 @@ This documentation is divided into three sections.
    :maxdepth: 2
    :caption: Contents:
 
-   .. network-structure-1.ipynb
+   network-structure-1.ipynb
 
 
 Indices and tables

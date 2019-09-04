@@ -37,7 +37,7 @@ class RiverNetwork:
         
         # add edges
         for index, row in df_edges.iterrows():
-            G.add_edge(row['pnode'], row['node'], weight=1, x=row['x'], k=row['k'], C = calc_C_auto_dt(row['k'],row['x']) ) # change weigths to fractions
+            G.add_edge(row['pnode'], row['node'], weight=row['fraction'], x=row['x'], k=row['k'], C = calc_C_auto_dt(row['k'],row['x']) ) # change weigths to fractions
         
         self.G = G
         # check if all nodes are connected
@@ -47,7 +47,7 @@ class RiverNetwork:
         # sum of fractions is 1
         # check if all x and k are present
         
-        self.calc_base_load()
+        
         
         # extract postions for drawing
         # what if no positions are given
@@ -66,7 +66,12 @@ class RiverNetwork:
             k = G.edges[edge[0],edge[1]]['k']
             xpos = (pos[edge[1]][0] + pos[edge[0]][0])/2
             ypos = (pos[edge[1]][1] + pos[edge[0]][1])/2
-            kx_string = 'k=' + str(k) + '\nx=' + str(x)
+            fraction = G.edges[edge[0],edge[1]]['weight']
+            fraction_str = ''
+            if fraction < 1:
+                fraction_str =  '\nf=' + str(fraction)
+            kx_string = 'k=' + str(k) + '\nx=' + str(x)  + fraction_str
+
             edge_labels[edge] = {'string':kx_string, 'xpos':xpos, 'ypos':ypos}
         self.edge_labels = edge_labels
     
@@ -74,7 +79,17 @@ class RiverNetwork:
             self.waveshapes = pd.read_excel(wave_shapes_location, index_col=0).T
         
         # Determine calculation order
-        self.calculation_order = list(reversed(list(nx.edge_bfs(G,'E.1','reverse'))))
+        G.add_node('end')
+        for sinks_str in self.sinknodes:
+            G.add_edge(sinks_str,'end')
+        self.calculation_order = list(reversed(list(nx.edge_bfs(G,'end','reverse'))))
+        nr_edges = len(self.calculation_order)
+        nr_sinks = len(self.sinknodes)
+        for i in range(0,nr_sinks):
+            self.calculation_order.remove(self.calculation_order[nr_edges-1-i])
+        G.remove_node('end')
+
+        self.calc_base_load()
 
     def set_constant_flow(self,node,steps):
         G = self.G
@@ -169,18 +184,15 @@ class RiverNetwork:
     def calc_base_load(self):
         # run max 1 time
         G = self.G
-        for source in self.sourcenodes:
-            flow = G.nodes[source]['avg_flow']
-            
-            # traverse edges
-            # implement bifurcations and weight factors
-            edges = nx.edge_dfs(G,source)
-            for edge in edges:
-                predecessor = G.nodes[edge[0]]
-                successor = G.nodes[edge[1]]
-                self.add_flow(successor,flow)
+        for (node_str, successor_str, x) in self.calculation_order:
+            edge = G[node_str][successor_str]
+            node = G.nodes[node_str]
+            successor = G.nodes[successor_str]
+            flow = node['avg_flow'] * edge['weight']
+            self.add_flow(successor,flow)
     
     def calc_flow_propagation(self,timesteps):
+        # search for everything with 30
         G = self.G
         for node_str in G.nodes:
             if node_str not in self.sourcenodes:
@@ -188,7 +200,7 @@ class RiverNetwork:
                 node['Qin'] = np.zeros(30)
                 node['Qout'] = np.zeros(30)
         
-        for t in np.arange(0,timesteps):#2):
+        for t in np.arange(0,timesteps):
             #print(t)
             for (node_str, successor_str, x) in self.calculation_order:
                 edge = G[node_str][successor_str]
@@ -200,16 +212,12 @@ class RiverNetwork:
                 if t == 0:
                     edge['Qin'] = np.zeros(30)
                     edge['Qout'] = np.zeros(30)
-                    edge['Qin'][0] = node['avg_flow']
-                    edge['Qout'][0] = node['avg_flow']
-                    #if not 'Qin' in successor:
-                    #    successor['Qin'] = np.zeros(30)
-                    #if not 'Qout' in successor:
-                    #    successor['Qout'] = np.zeros(30)
-                    successor['Qin'][0] = node['avg_flow'] + successor['Qin'][0]
-                    successor['Qout'][0] = node['avg_flow'] + successor['Qout'][0]
+                    edge['Qin'][0] = node['avg_flow'] * edge['weight']
+                    edge['Qout'][0] = node['avg_flow'] * edge['weight']
+                    successor['Qin'][0]  = node['avg_flow'] * edge['weight'] + successor['Qin'][0]
+                    successor['Qout'][0] = node['avg_flow'] * edge['weight'] + successor['Qout'][0]
                 else:
-                    edge['Qin'][t] = node['Qout'][t]
+                    edge['Qin'][t] = node['Qout'][t] * edge['weight']  # + external effect
                     #edge['Qout'][t] = edge['Qin'][t] # no muskingum effect
                     edge['Qout'][t] = edge['Qin'][t]*C['C1'] + edge['Qin'][t-1]*C['C2'] + edge['Qout'][t-1]*C['C3']
                     successor['Qin'][t] = edge['Qout'][t] + successor['Qin'][t]

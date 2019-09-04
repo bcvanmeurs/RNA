@@ -119,6 +119,7 @@ class RiverNetwork:
         }
         
         fig = plt.figure(figsize=(8,8))#,dpi=300)
+        fig.patch.set_alpha(0)
         nx.draw(self.G, with_labels=False, pos=self.pos, **options)
         nx.draw_networkx_labels(self.G, self.pos, font_color='white' )
         
@@ -130,7 +131,7 @@ class RiverNetwork:
         for edge, items in self.edge_labels.items():
             t = plt.text(items['xpos'],items['ypos'],items['string']
                          ,horizontalalignment='center',verticalalignment='center')
-            t.set_bbox(dict(facecolor='white', alpha=1,edgecolor='None'))
+            t.set_bbox(dict(facecolor='#fcfcfc', alpha=1,edgecolor='None'))
         
         plt.axis('equal')
         
@@ -142,6 +143,7 @@ class RiverNetwork:
             flow = G.nodes[node_str]['avg_flow']
             t = np.arange(10)
             flow_array = np.full( 10, flow)
+            fig.patch.set_alpha(0)
             sns.lineplot(t,flow_array,label=node_str)
 
         plt.ylabel('Flow, $Q$ [m$^3$/s]')
@@ -155,12 +157,14 @@ class RiverNetwork:
             for node_str in self.sourcenodes:
                 flow = G.nodes[node_str]['Qin']
                 t = np.arange(len(flow))
+                fig.patch.set_alpha(0)
                 sns.lineplot(t,flow,label=node_str)
         else:
             for node_str in G:
                 if 'Qin' in G.nodes[node_str]:
                     flow = G.nodes[node_str]['Qin']
                     t = np.arange(len(flow))
+                    fig.patch.set_alpha(0)
                     sns.lineplot(t,flow,label=node_str)
             
         plt.ylabel('Flow, $Q$ [m$^3$/s]')

@@ -17,7 +17,8 @@ from IPython.core.interactiveshell import InteractiveShell
 InteractiveShell.ast_node_interactivity = "all"
 import pandas as pd
 import networkx as nx
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
+import seaborn as sns
 import numpy as np
 
 # %load_ext autoreload
@@ -48,3 +49,5 @@ structure1.draw_Qin(True)
 structure1.calc_flow_propagation(30)
 
 structure1.draw_Qin()
+
+

@@ -1,6 +1,7 @@
 import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
+import seaborn as sns; sns.set()
 import numpy as np
 from fit_muskingum import calc_C_auto_dt
 
@@ -141,8 +142,8 @@ class RiverNetwork:
             flow = G.nodes[node_str]['avg_flow']
             t = np.arange(10)
             flow_array = np.full( 10, flow)
-            plt.plot(t,flow_array,label=node_str)
-            
+            sns.lineplot(t,flow_array,label=node_str)
+
         plt.ylabel('Flow, $Q$ [m$^3$/s]')
         plt.xlabel('Timesteps')
         plt.legend()
@@ -154,13 +155,13 @@ class RiverNetwork:
             for node_str in self.sourcenodes:
                 flow = G.nodes[node_str]['Qin']
                 t = np.arange(len(flow))
-                plt.plot(t,flow,label=node_str)
+                sns.lineplot(t,flow,label=node_str)
         else:
             for node_str in G:
                 if 'Qin' in G.nodes[node_str]:
                     flow = G.nodes[node_str]['Qin']
                     t = np.arange(len(flow))
-                    plt.plot(t,flow,label=node_str)
+                    sns.lineplot(t,flow,label=node_str)
             
         plt.ylabel('Flow, $Q$ [m$^3$/s]')
         plt.xlabel('Timesteps')
@@ -174,8 +175,8 @@ class RiverNetwork:
                 Qin = edge['Qin']
                 Qout = edge['Qout']
                 t = np.arange(len(Qin))
-                plt.plot(t,Qin,label=node_str+ ' Qin')
-                plt.plot(t,Qout,label=node_str+ ' Qout')
+                sns.lineplot(t,Qin,label=node_str+ ' Qin')
+                sns.lineplot(t,Qout,label=node_str+ ' Qout')
                 
         plt.ylabel('Flow, $Q$ [m$^3$/s]')
         plt.xlabel('Timesteps')

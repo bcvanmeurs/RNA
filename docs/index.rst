@@ -22,10 +22,12 @@ Here is a short list:
 * `For the full derivation of the muskingum equation see Todini 2007 <https://www.hydrol-earth-syst-sci.net/11/1645/2007/hess-11-1645-2007.pdf>`_
 * `This is a very clear and practical example by University of Colorado Boulder <http://www.engr.colostate.edu/~ramirez/ce_old/classes/cive322-Ramirez/CE322_Web/Example_MuskingumRouting.htm>`_
 
-This documentation is divided into two sections.
+This documentation is divided into three sections.
 In the first section the basic parts or building blocks of the model are presented and analysed.
 In the second section small networks are tested and analysed. 
 This section also explains some concepts on how to calculate flows in these networks.
+The third section shows some code to extract the Ganges Brahmaputra watershed from the Hydrosheds dataset.
+(Code not well documented yet)
 
 
 
@@ -43,6 +45,14 @@ This section also explains some concepts on how to calculate flows in these netw
    
    network-structure-1.ipynb
    network-structure-2.ipynb
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Ganges Brahmaputra GIS:
+   
+   gis/Create-hydroshed.ipynb
+   gis/Extract-regions-HydroSHEDS.ipynb
+   gis/plot-watershed.ipynb
 
 
 .. Indices and tables

@@ -2,4 +2,5 @@
 *.pyc
 .vscode
 !docs/*.ipynb
+!docs/gis/*.ipynb
 _build

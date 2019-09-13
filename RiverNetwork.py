@@ -136,9 +136,9 @@ class RiverNetwork:
         plt.axis('equal')
         
         
-    def draw_base_loads(self,timesteps = 10):
+    def draw_base_loads(self,figsize=(8,8),timesteps = 10):
         G = self.G
-        fig = plt.figure(figsize=(8,8))#,dpi=300)
+        fig = plt.figure(figsize=figsize)#,dpi=300)
         for node_str in G:
             flow = G.nodes[node_str]['avg_flow']
             t = np.arange(10)
@@ -150,9 +150,9 @@ class RiverNetwork:
         plt.xlabel('Timesteps')
         plt.legend()
     
-    def draw_Qin(self,only_sources=False):
+    def draw_Qin(self,figsize=(8,8),only_sources=False, no = {}):
         G = self.G
-        fig = plt.figure(figsize=(8,8))#,dpi=300)
+        fig = plt.figure(figsize=figsize)#,dpi=300)
         if only_sources == True:
             for node_str in self.sourcenodes:
                 flow = G.nodes[node_str]['Qin']
@@ -161,11 +161,12 @@ class RiverNetwork:
                 sns.lineplot(t,flow,label=node_str)
         else:
             for node_str in G:
-                if 'Qin' in G.nodes[node_str]:
-                    flow = G.nodes[node_str]['Qin']
-                    t = np.arange(len(flow))
-                    fig.patch.set_alpha(0)
-                    sns.lineplot(t,flow,label=node_str)
+                if node_str not in no:
+                    if 'Qin' in G.nodes[node_str]:
+                        flow = G.nodes[node_str]['Qin']
+                        t = np.arange(len(flow))
+                        fig.patch.set_alpha(0)
+                        sns.lineplot(t,flow,label=node_str)
             
         plt.ylabel('Flow, $Q$ [m$^3$/s]')
         plt.xlabel('Timesteps')

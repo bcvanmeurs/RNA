@@ -22,21 +22,32 @@ Here is a short list:
 * `For the full derivation of the muskingum equation see Todini 2007 <https://www.hydrol-earth-syst-sci.net/11/1645/2007/hess-11-1645-2007.pdf>`_
 * `This is a very clear and practical example by University of Colorado Boulder <http://www.engr.colostate.edu/~ramirez/ce_old/classes/cive322-Ramirez/CE322_Web/Example_MuskingumRouting.htm>`_
 
-This documentation is divided into three sections.
-
+This documentation is divided into two sections.
+In the first section the basic parts or building blocks of the model are presented and analysed.
+In the second section small networks are tested and analysed. 
+This section also explains some concepts on how to calculate flows in these networks.
 
 
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
-
+   :caption: Basic Parts:
+   
+   single-reach.ipynb
+   single-confluence.ipynb
+   single-bifurcation.ipynb
+   
+.. toctree::
+   :maxdepth: 2
+   :caption: Networks:
+   
    network-structure-1.ipynb
+   network-structure-2.ipynb
 
 
-Indices and tables
-==================
+.. Indices and tables
+.. ==================
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+.. * :ref:`genindex`
+.. * :ref:`modindex`
+.. * :ref:`search`

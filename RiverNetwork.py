@@ -110,7 +110,7 @@ class RiverNetwork:
         G.nodes[node]['Qin'] = wave.to_numpy()
         G.nodes[node]['Qout'] = wave.to_numpy() #ugly
     
-    def draw(self):
+    def draw(self,figsize=(8,8)):
         options = {
             'node_color': '#1f78b4',
             #'alpha':0.5
@@ -118,7 +118,7 @@ class RiverNetwork:
             #'width': 3,
         }
         
-        fig = plt.figure(figsize=(8,8))#,dpi=300)
+        fig = plt.figure(figsize=figsize)#,dpi=300)
         fig.patch.set_alpha(0)
         nx.draw(self.G, with_labels=False, pos=self.pos, **options)
         nx.draw_networkx_labels(self.G, self.pos, font_color='white' )
@@ -202,8 +202,8 @@ class RiverNetwork:
         for node_str in G.nodes:
             if node_str not in self.sourcenodes:
                 node = G.nodes[node_str]
-                node['Qin'] = np.zeros(30)
-                node['Qout'] = np.zeros(30)
+                node['Qin'] = np.zeros(timesteps)
+                node['Qout'] = np.zeros(timesteps)
         
         for t in np.arange(0,timesteps):
             #print(t)
@@ -215,8 +215,8 @@ class RiverNetwork:
                 successor = G.nodes[successor_str]
                 
                 if t == 0:
-                    edge['Qin'] = np.zeros(30)
-                    edge['Qout'] = np.zeros(30)
+                    edge['Qin'] = np.zeros(timesteps)
+                    edge['Qout'] = np.zeros(timesteps)
                     edge['Qin'][0] = node['avg_flow'] * edge['weight']
                     edge['Qout'][0] = node['avg_flow'] * edge['weight']
                     successor['Qin'][0]  = node['avg_flow'] * edge['weight'] + successor['Qin'][0]

@@ -110,7 +110,7 @@ class RiverNetwork:
         G.nodes[node]['Qin'] = wave.to_numpy()
         G.nodes[node]['Qout'] = wave.to_numpy() #ugly
     
-    def draw(self,figsize=(8,8)):
+    def draw(self,figsize=(8,8),print=False):
         options = {
             'node_color': '#1f78b4',
             #'alpha':0.5
@@ -131,7 +131,10 @@ class RiverNetwork:
         for edge, items in self.edge_labels.items():
             t = plt.text(items['xpos'],items['ypos'],items['string']
                          ,horizontalalignment='center',verticalalignment='center')
-            t.set_bbox(dict(facecolor='#fcfcfc', alpha=1,edgecolor='None'))
+            if print == True:
+                t.set_bbox(dict(facecolor='#ffffff', alpha=1,edgecolor='None'))
+            else:
+                t.set_bbox(dict(facecolor='#fcfcfc', alpha=1,edgecolor='None'))
         
         plt.axis('equal')
         

@@ -3,11 +3,11 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import seaborn as sns; sns.set()
 import numpy as np
-from fit_muskingum import calc_C_auto_dt
+from fit_muskingum import calc_C_auto_dt, calc_C
 
 class RiverNetwork:
     
-    def __init__(self, excel_location,wave_shapes_location=None):
+    def __init__(self, excel_location,dt=None,wave_shapes_location=None):
         # load network
 
         df_nodes = pd.read_excel(excel_location,sheet_name='nodes')
@@ -38,7 +38,10 @@ class RiverNetwork:
         
         # add edges
         for index, row in df_edges.iterrows():
-            G.add_edge(row['pnode'], row['node'], weight=row['fraction'], x=row['x'], k=row['k'], C = calc_C_auto_dt(row['k'],row['x']) ) # change weigths to fractions
+            if dt:
+                G.add_edge(row['pnode'], row['node'], weight=row['fraction'], x=row['x'], k=row['k'], C = calc_C(row['k'],row['x'],dt) ) 
+            else:
+                G.add_edge(row['pnode'], row['node'], weight=row['fraction'], x=row['x'], k=row['k'], C = calc_C_auto_dt(row['k'],row['x']) ) # change weights to fractions
         
         self.G = G
         # check if all nodes are connected
@@ -110,7 +113,7 @@ class RiverNetwork:
         G.nodes[node]['Qin'] = wave.to_numpy()
         G.nodes[node]['Qout'] = wave.to_numpy() #ugly
     
-    def draw(self,figsize=(8,8),print=False):
+    def draw(self,figsize=(8,8),print=False,labels=True):
         options = {
             'node_color': '#1f78b4',
             #'alpha':0.5
@@ -123,18 +126,16 @@ class RiverNetwork:
         nx.draw(self.G, with_labels=False, pos=self.pos, **options)
         nx.draw_networkx_labels(self.G, self.pos, font_color='white' )
         
-        flow_labels = nx.get_node_attributes(self.G,'avg_flow')
-        nx.draw_networkx_labels(self.G, self.pos_labels, labels = flow_labels)
-        
-        
-        
-        for edge, items in self.edge_labels.items():
-            t = plt.text(items['xpos'],items['ypos'],items['string']
-                         ,horizontalalignment='center',verticalalignment='center')
-            if print == True:
-                t.set_bbox(dict(facecolor='#ffffff', alpha=1,edgecolor='None'))
-            else:
-                t.set_bbox(dict(facecolor='#fcfcfc', alpha=1,edgecolor='None'))
+        if labels == True:
+            flow_labels = nx.get_node_attributes(self.G,'avg_flow')
+            nx.draw_networkx_labels(self.G, self.pos_labels, labels = flow_labels)
+            for edge, items in self.edge_labels.items():
+                t = plt.text(items['xpos'],items['ypos'],items['string']
+                            ,horizontalalignment='center',verticalalignment='center')
+                if print == True:
+                    t.set_bbox(dict(facecolor='#ffffff', alpha=1,edgecolor='None'))
+                else:
+                    t.set_bbox(dict(facecolor='#fcfcfc', alpha=1,edgecolor='None'))
         
         plt.axis('equal')
         

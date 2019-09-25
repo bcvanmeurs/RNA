@@ -38,6 +38,7 @@ The third section shows some code to extract the Ganges Brahmaputra watershed fr
    single-reach.ipynb
    single-confluence.ipynb
    single-bifurcation.ipynb
+   model-verification.ipynb
    
 .. toctree::
    :maxdepth: 2

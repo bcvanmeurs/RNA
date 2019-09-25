@@ -3,4 +3,5 @@
 .vscode
 !docs/*.ipynb
 !docs/gis/*.ipynb
+!docs/ijssel/*.ipynb
 _build

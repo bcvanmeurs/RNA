@@ -5,3 +5,6 @@
 !docs/gis/*.ipynb
 !docs/ijssel/*.ipynb
 _build
+data_gloric
+data_pmm
+data_hydrosheds

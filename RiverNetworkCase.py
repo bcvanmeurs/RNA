@@ -4,7 +4,7 @@ import networkx as nx
 import numpy as np
 
 class RiverNetwork:
-    def __init__(self, river_data, watershed_data,rain_data, x, speed, delta_t = 30, t_max = 1440):
+    def __init__(self, river_data, watershed_data,rain_data, x, speed, runoff_coeff = 0.5 , delta_t = 30, t_max = 1440):
         padma = pd.read_pickle(river_data)
         watersheds = pd.read_pickle(watershed_data)
         rain = pd.read_pickle(rain_data)
@@ -14,7 +14,11 @@ class RiverNetwork:
         self.delta_t = delta_t
         self.L_max = delta_t * 60 * speed / (2 * x) / 1000
         self.L_min = delta_t * 60 * speed / (2 * (1-x)) / 1000
-        self.runoff_coeff
+        self.runoff_coeff = runoff_coeff
+
+        # should check if ids in files match!
+        # only take ids from main file
+        # set sink node
 
         G = nx.DiGraph()
         G.add_nodes_from(padma['Reach_ID'])
@@ -41,21 +45,26 @@ class RiverNetwork:
             
             if len(list(G.predecessors(row['Reach_ID']))) == 0:
                 G.nodes[row['Reach_ID']]['source'] = True
-                G.nodes[row['Reach_ID']]['Qin'] =  np.full(t_max//delta_t,10**row['Log_Q_avg'])
+                #G.nodes[row['Reach_ID']]['Qin'] =  np.full(t_max//delta_t,10**row['Log_Q_avg'])
             else:
                 G.nodes[row['Reach_ID']]['source'] = False
-                G.nodes[row['Reach_ID']]['Qin'] =  np.concatenate(( [10**row['Log_Q_avg']], np.zeros(t_max//delta_t) ))
-            G.nodes[row['Reach_ID']]['Qout'] = np.concatenate(( [10**row['Log_Q_avg']], np.zeros(t_max//delta_t) ))
+                #G.nodes[row['Reach_ID']]['Qin'] =  np.concatenate(( [10**row['Log_Q_avg']], np.zeros(t_max//delta_t -1) ))
+            G.nodes[row['Reach_ID']]['Qin'] = np.zeros(t_max//delta_t )
+            G.nodes[row['Reach_ID']]['Qout'] = np.zeros(t_max//delta_t ) #np.concatenate(( [10**row['Log_Q_avg']], np.zeros(t_max//delta_t - 1) ))
         
         # add rainfall data to nodes
         for index,row in rain.iterrows(): #rain.iterrows():
             G.nodes[row['Reach_ID']]['area_sk'] = row['area_sk']
-            G.nodes[row['Reach_ID']]['net_inflow'] = self.get_net_inflow(row['Reach_ID'])
-            G.nodes[row['Reach_ID']]['rain'] = row.drop(labels={'Reach_ID','area_sk'}).to_numpy()
+            G.nodes[row['Reach_ID']]['static_inflow'] = self.get_static_inflow(row['Reach_ID'])
+            G.nodes[row['Reach_ID']]['rain'] = row.drop(labels={'Reach_ID','area_sk'}).to_numpy() # np.zeros(t_max//delta_t )
 
         self.calculation_order = list(reversed(list(nx.edge_bfs(G,0,'reverse'))))
         self.G = G
     
+    def set_zero_loads(self):
+        for Reach_ID, y, z in self.calculation_order:
+            self.get_outflow(Reach_ID,0)
+
     def get_outflow(self, Reach_ID, t):
         node = self.G.nodes[Reach_ID]
         C = node['C']
@@ -65,29 +74,41 @@ class RiverNetwork:
         #       - static inflow
         #       - rain
         
+        # rain is in mm/hour
+        # area is in square km
+        # convert to cubic meters per half hour
+
+        Q_rain = node['rain'][t] * node['area_sk'] * 1e3 * 0.5 * self.runoff_coeff
+        Q_static = node['static_inflow']
+
         if node['source'] == True:
             # No previous node inflow
-
-            # rain is in mm/hour
-            # area is in square km
-            # convert to cubic meters per half hour
-            Q_rain = node['rain'] * node['area_sk'] * 1e3 * 0.5 * self.runoff_coeff
-            Q_static = node['net_inflow']
             Qin = Q_rain + Q_static
+        
+        else: # if not source node
+            Q_predecessor = self.get_outflow_predecessors(Reach_ID,t)
+            Qin = Q_rain + Q_static + Q_predecessor
 
-            
-            
+        node['Qin'][t] = Qin
+        if t == 0:
+            node['Qout'][t] = Qin
+        else:
             node['Qout'][t] = node['Qin'][t]*C['C1'] + node['Qin'][t-1]*C['C2'] + node['Qout'][t-1]*C['C3']
+            
+    def get_outflow_predecessors(self,Reach_ID,t):
+        total_outflow = 0
+        G = self.G
+        for predecessor in G.predecessors(Reach_ID):
+            total_outflow = total_outflow + G.nodes[predecessor]['Qout'][t]
+        return total_outflow
 
-
-
-    def get_net_inflow(self,Reach_ID):
+    def get_static_inflow(self,Reach_ID):
         total_inflow = 0
         G = self.G
         for predecessor in G.predecessors(Reach_ID):
             total_inflow = total_inflow + (10 ** G.nodes[predecessor]['Log_Q_avg'])
-        net_inflow = (10 ** G.nodes[Reach_ID]['Log_Q_avg']) - total_inflow
-        return net_inflow
+        static_inflow = (10 ** G.nodes[Reach_ID]['Log_Q_avg']) - total_inflow
+        return static_inflow
 
     def get_node(self,Reach_ID):
         return self.G.nodes[Reach_ID]

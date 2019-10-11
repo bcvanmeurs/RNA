@@ -6,9 +6,21 @@ import matplotlib.pyplot as plt
 
 class RiverNetwork:
     def __init__(self, river_data, watershed_data,rain_data, x, speed, runoff_coeff = 0.5 , delta_t = 30, t_max = 1440):
-        padma = pd.read_pickle(river_data)
-        watersheds = pd.read_pickle(watershed_data)
-        rain = pd.read_pickle(rain_data)
+        if isinstance(river_data,str):
+            padma = pd.read_pickle(river_data)
+        elif isinstance(river_data,pd.DataFrame): 
+            padma = river_data
+        
+        # if isinstance(watershed_data,str):
+        #     watersheds = pd.read_pickle(watershed_data)
+        # elif isinstance(watershed_data,pd.DataFrame): 
+        #     watersheds = watershed_data
+        
+        if isinstance(rain_data,str):
+            rain = pd.read_pickle(rain_data)
+        elif isinstance(rain_data,pd.DataFrame): 
+            rain = rain_data
+         
         self.x = x
         self.speed = speed
         self.time = time = np.arange(0,t_max,delta_t)
@@ -122,7 +134,7 @@ class RiverNetwork:
         Qin = node['Qin']
         Qout = node['Qout']
         Q_rain = node['rain'] * node['area_sk'] * 1e3 * 0.5 * self.runoff_coeff
-        time = np.arange(0,24,0.5)
+        time = np.arange(0,self.t_max/30/2,0.5)
         fig = plt.figure()
         plt.plot(time,Qin,'-')
         plt.plot(time,Qout,'-')

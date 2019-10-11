@@ -2,6 +2,7 @@ import geopandas as gp
 import pandas as pd
 import networkx as nx
 import numpy as np
+import matplotlib.pyplot as plt
 
 class RiverNetwork:
     def __init__(self, river_data, watershed_data,rain_data, x, speed, runoff_coeff = 0.5 , delta_t = 30, t_max = 1440):
@@ -11,6 +12,7 @@ class RiverNetwork:
         self.x = x
         self.speed = speed
         self.time = time = np.arange(0,t_max,delta_t)
+        self.t_max = t_max
         self.delta_t = delta_t
         self.L_max = delta_t * 60 * speed / (2 * x) / 1000
         self.L_min = delta_t * 60 * speed / (2 * (1-x)) / 1000
@@ -59,21 +61,23 @@ class RiverNetwork:
             G.nodes[row['Reach_ID']]['rain'] = row.drop(labels={'Reach_ID','area_sk'}).to_numpy() # np.zeros(t_max//delta_t )
 
         self.calculation_order = list(reversed(list(nx.edge_bfs(G,0,'reverse'))))
+        G.remove_node(0) # remove virtual sink node
         self.G = G
     
     def set_zero_loads(self):
         for Reach_ID, y, z in self.calculation_order:
-            self.get_outflow(Reach_ID,0)
+            self.set_outflow(Reach_ID,0)
 
-    def get_outflow(self, Reach_ID, t):
+    def calculate_flows(self):
+        for t in np.arange(self.t_max//self.delta_t):
+            for Reach_ID, y, z in self.calculation_order:
+                self.set_outflow(Reach_ID,t)
+
+
+    def set_outflow(self, Reach_ID, t):
         node = self.G.nodes[Reach_ID]
         C = node['C']
 
-        # inflow consist of (on both t and t-1)
-        #       - previous node
-        #       - static inflow
-        #       - rain
-        
         # rain is in mm/hour
         # area is in square km
         # convert to cubic meters per half hour
@@ -113,6 +117,17 @@ class RiverNetwork:
     def get_node(self,Reach_ID):
         return self.G.nodes[Reach_ID]
     
+    def plot_node_flows(self,Reach_ID):
+        node = self.G.nodes[Reach_ID]
+        Qin = node['Qin']
+        Qout = node['Qout']
+        Q_rain = node['rain'] * node['area_sk'] * 1e3 * 0.5 * self.runoff_coeff
+        time = np.arange(0,24,0.5)
+        fig = plt.figure()
+        plt.plot(time,Qin,'-')
+        plt.plot(time,Qout,'-')
+        plt.plot(time,Q_rain,'-')
+        plt.show()
 
 def calc_C(x,L,speed,dt):
     dt = dt*60

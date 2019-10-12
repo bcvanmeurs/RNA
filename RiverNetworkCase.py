@@ -94,7 +94,7 @@ class RiverNetwork:
         # area is in square km
         # convert to cubic meters per half hour
 
-        Q_rain = node['rain'][t] * node['area_sk'] * 1e3 * 0.5 * self.runoff_coeff
+        Q_rain = node['rain'][t] * node['area_sk'] * 1e3 / 3600 * self.runoff_coeff
         Q_static = node['static_inflow']
 
         if node['source'] == True:
@@ -133,7 +133,7 @@ class RiverNetwork:
         node = self.G.nodes[Reach_ID]
         Qin = node['Qin']
         Qout = node['Qout']
-        Q_rain = node['rain'] * node['area_sk'] * 1e3 * 0.5 * self.runoff_coeff
+        Q_rain = node['rain'] * node['area_sk'] * 1e3 / 3600 * self.runoff_coeff
         time = np.arange(0,self.t_max/30/2,0.5)
         fig = plt.figure()
         plt.plot(time,Qin,'-')

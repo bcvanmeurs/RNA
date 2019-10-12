@@ -51,15 +51,18 @@ class RiverNetwork:
             G.nodes[row['Reach_ID']]['Log_Q_var'] = row['Log_Q_var']
             if (length < self.L_max) & (length > self.L_min):
                 G.nodes[row['Reach_ID']]['split'] = 0
+                G.nodes[row['Reach_ID']]['C'] = calc_C(self.x, length * 1000, self.speed, self.delta_t) 
             if length > self.L_max:
                 G.nodes[row['Reach_ID']]['split'] = int(length // self.L_max + 1) 
+                G.nodes[row['Reach_ID']]['C'] = calc_C(self.x, length * 1000, self.speed, self.delta_t) 
             if length < self.L_min:
                 G.nodes[row['Reach_ID']]['split'] = -int(self.L_min // length +1) 
                 sub_timestamps = abs(G.nodes[row['Reach_ID']]['split'])
                 while not (self.delta_t % sub_timestamps == 0) :
                     sub_timestamps += 1
+                G.nodes[row['Reach_ID']]['C'] = calc_C(self.x, length * 1000, self.speed, self.delta_t/sub_timestamps) 
                 G.nodes[row['Reach_ID']]['sub_timestamps'] = sub_timestamps
-            G.nodes[row['Reach_ID']]['C'] = calc_C(self.x, length * 1000, self.speed, self.delta_t) 
+            
             
             
 
@@ -94,10 +97,12 @@ class RiverNetwork:
 
     def set_outflow(self, Reach_ID, t):
         node = self.G.nodes[Reach_ID]
-        #if node['split'] == 0:
-        self.set_outflow_nosplit(Reach_ID, node, t)
-        #if node['split'] < -1:
-        #    self.set_outflow_sub_timestamp(Reach_ID, node, t)
+        if node['split'] == 0:
+            self.set_outflow_nosplit(Reach_ID, node, t)
+        elif node['split'] < -1:
+            self.set_outflow_sub_timestamp(Reach_ID, node, t)
+        elif node['split'] > 1:
+            self.set_outflow_nosplit(Reach_ID, node, t)
         
     def set_outflow_nosplit(self, Reach_ID, node, t):
         C = node['C']
@@ -126,37 +131,43 @@ class RiverNetwork:
         C = node['C']
         sub_timestamps = node['sub_timestamps']
                 
-        Q_rain = node['rain'][t] * node['area_sk'] * 1e3 * 0.5 * self.runoff_coeff / sub_timestamps
-        Q_static = node['static_inflow'] / sub_timestamps
-        Q_predecessor = self.get_outflow_predecessors(Reach_ID,t,split = -sub_timestamps)
-
-        Qin_sub     = np.zeros(sub_timestamps + 1)
-        Qin_sub[0]  = node['Qin'][t-1]
-        Qout_sub    = np.zeros(sub_timestamps + 1)
-        Qout_sub[0] = node['Qout'][t-1]
+        Q_rain = node['rain'][t] * node['area_sk'] * 1e3 / 3600 * self.runoff_coeff
+        Q_static = node['static_inflow']
 
         if t == 0:
             if node['source'] == True:
                 Qin = Q_rain + Q_static 
             else:
-                Q_predecessor = self.get_outflow_predecessors(Reach_ID,t) / sub_timestamps
+                Q_predecessor = self.get_outflow_predecessors(Reach_ID,t)
                 Qin = Q_rain + Q_static + Q_predecessor
             node['Qin'][t] = Qin
             node['Qout'][t] = Qin
         else:
+            Qin_sub     = np.zeros(sub_timestamps + 1)
+            Qin_sub[0]  = node['Qin'][t-1]
+            Qout_sub    = np.zeros(sub_timestamps + 1)
+            Qout_sub[0] = node['Qout'][t-1]
+            #print(Qin_sub)
+            #print(Qout_sub)
+
             if node['source'] == True:
                 for sub_timestamp in np.arange(1 , sub_timestamps + 1):
                     Qin = Q_rain + Q_static 
                     Qin_sub[sub_timestamp] = Qin
-                    Qout_sub[sub_timestamp] = Qin_sub[t]*C['C1'] + Qin_sub[t-1]*C['C2'] + Qout_sub[t-1]*C['C3']
+                    Qout_sub[sub_timestamp] = Qin_sub[sub_timestamp]*C['C1'] + Qin_sub[sub_timestamp-1]*C['C2'] + Qout_sub[sub_timestamp-1]*C['C3']
             else:
                 for sub_timestamp in np.arange(1 , sub_timestamps + 1):
-                    self.get_outflow_predecessors(Reach_ID,t,split=node['split'], )
-                    Qin = Q_rain + Q_static 
+                    Q_predecessor = self.get_outflow_predecessors(Reach_ID,t,split=node['split'], sub_timestamp=sub_timestamp)
+                    #print(Q_predecessor)
+                    Qin = Q_rain + Q_static + Q_predecessor
                     Qin_sub[sub_timestamp] = Qin
-                    Qout_sub[sub_timestamp] = Qin_sub[t]*C['C1'] + Qin_sub[t-1]*C['C2'] + Qout_sub[t-1]*C['C3']
+                    Qout_sub[sub_timestamp] = Qin_sub[sub_timestamp]*C['C1'] + Qin_sub[sub_timestamp-1]*C['C2'] + Qout_sub[sub_timestamp-1]*C['C3']
+            #print(Qin_sub)
+            #print(Qout_sub)
+            node['Qin'][t]  = Qin_sub[-1]
+            node['Qout'][t] = Qout_sub[-1]
             
-    def get_outflow_predecessors(self,Reach_ID,t,split = 0):
+    def get_outflow_predecessors(self,Reach_ID,t,split = 0, sub_timestamp = 0):
         G = self.G
 
         if split >= 0:
@@ -169,21 +180,24 @@ class RiverNetwork:
             x = np.arange(2)
             result_x = np.linspace(0,1,sub_timestamps+1)
 
-            print(x)
-            print(result_x)
+            #print(x)
+            #print(result_x)
 
             total_outflow = np.zeros((len(list(G.predecessors(Reach_ID))),2))
-            total_outflow_new = list()
+            #total_outflow_new = list()
+            total_outflow_at_sub = 0
             i = 0
             for predecessor in G.predecessors(Reach_ID):
                 total_outflow[i][0] =  G.nodes[predecessor]['Qout'][t-1]
                 total_outflow[i][1] =  G.nodes[predecessor]['Qout'][t]
                 
-                print(total_outflow[i])
+                #print(total_outflow[i])
 
-                total_outflow_new.append( np.interp(result_x,x,total_outflow[i]) )
+                #total_outflow_new.append( np.interp(result_x,x,total_outflow[i]) )
+                total_outflow_at_sub +=  np.interp(result_x,x,total_outflow[i])[sub_timestamp] 
                 i = i + 1
-        return (total_outflow,total_outflow_new)
+            #print(total_outflow_new)
+        return total_outflow_at_sub 
 
     def get_static_inflow(self,Reach_ID):
         total_inflow = 0

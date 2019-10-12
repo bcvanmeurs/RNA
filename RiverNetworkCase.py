@@ -20,18 +20,22 @@ class RiverNetwork:
             rain = pd.read_pickle(rain_data)
         elif isinstance(rain_data,pd.DataFrame): 
             rain = rain_data
+        rain = rain.set_index('Reach_ID',drop=False)
          
         self.x = x
         self.speed = speed
         self.time = time = np.arange(0,t_max,delta_t)
         self.t_max = t_max
         self.delta_t = delta_t
+        # in km
         self.L_max = delta_t * 60 * speed / (2 * x) / 1000
         self.L_min = delta_t * 60 * speed / (2 * (1-x)) / 1000
         self.runoff_coeff = runoff_coeff
 
+        padma_original = padma.copy()
+        padma = split_reaches(padma,self.L_max)
+
         # should check if ids in files match!
-        # only take ids from main file
         # set sink node
 
         G = nx.DiGraph()
@@ -52,8 +56,8 @@ class RiverNetwork:
             if (length < self.L_max) & (length > self.L_min):
                 G.nodes[row['Reach_ID']]['split'] = 0
                 G.nodes[row['Reach_ID']]['C'] = calc_C(self.x, length * 1000, self.speed, self.delta_t) 
-            if length > self.L_max:
-                G.nodes[row['Reach_ID']]['split'] = int(length // self.L_max + 1) 
+            if row['Splits'] > 1:
+                G.nodes[row['Reach_ID']]['split'] = row['Splits']
                 G.nodes[row['Reach_ID']]['C'] = calc_C(self.x, length * 1000, self.speed, self.delta_t) 
             if length < self.L_min:
                 G.nodes[row['Reach_ID']]['split'] = -int(self.L_min // length +1) 
@@ -68,18 +72,19 @@ class RiverNetwork:
 
             if len(list(G.predecessors(row['Reach_ID']))) == 0:
                 G.nodes[row['Reach_ID']]['source'] = True
-                #G.nodes[row['Reach_ID']]['Qin'] =  np.full(t_max//delta_t,10**row['Log_Q_avg'])
             else:
                 G.nodes[row['Reach_ID']]['source'] = False
-                #G.nodes[row['Reach_ID']]['Qin'] =  np.concatenate(( [10**row['Log_Q_avg']], np.zeros(t_max//delta_t -1) ))
             G.nodes[row['Reach_ID']]['Qin'] = np.zeros(t_max//delta_t )
-            G.nodes[row['Reach_ID']]['Qout'] = np.zeros(t_max//delta_t ) #np.concatenate(( [10**row['Log_Q_avg']], np.zeros(t_max//delta_t - 1) ))
+            G.nodes[row['Reach_ID']]['Qout'] = np.zeros(t_max//delta_t )
         
         # add rainfall data to nodes
-        for index,row in rain.iterrows(): #rain.iterrows():
-            G.nodes[row['Reach_ID']]['area_sk'] = row['area_sk']
-            G.nodes[row['Reach_ID']]['static_inflow'] = self.get_static_inflow(row['Reach_ID'])
-            G.nodes[row['Reach_ID']]['rain'] = row.drop(labels={'Reach_ID','area_sk'}).to_numpy() # np.zeros(t_max//delta_t )
+            # preferably this loop is merged with the above one, but get_static_inflow needs flows from predecessors, the might not be set.
+        for index, row in padma.iterrows():
+            Reach_ID    = row['Reach_ID']
+            Original_ID = row['Original_ID']
+            G.nodes[Reach_ID]['area_sk']            = rain.loc[Original_ID]['area_sk'] / row['Splits']
+            G.nodes[Reach_ID]['static_inflow']      = self.get_static_inflow(Reach_ID)
+            G.nodes[Reach_ID]['rain']               = rain.loc[Original_ID].drop(labels={'Reach_ID','area_sk'}).to_numpy()/row['Splits']
 
         self.calculation_order = list(reversed(list(nx.edge_bfs(G,0,'reverse'))))
         G.remove_node(0) # remove virtual sink node
@@ -229,4 +234,50 @@ def calc_C(x,L,speed,dt):
     C1 = ((dt/k)-2*x)/C0
     C2 = ((dt/k)+2*x)/C0
     C3 = (2*(1-x)-dt/k)/C0
-    return {'0':C0 ,'C1':C1 ,'C2':C2, 'C3':C3, 'dt':dt/60}
+    return {'0':C0 ,'C1':C1 ,'C2':C2, 'C3':C3, 'dt':dt/60, 'L':L}
+
+def split_reaches(padma,L_max):
+
+    max_id = max(padma['Reach_ID'])
+    digits = len(str(max_id))
+    free_id = int(round(max_id,-digits+1) + 10**(digits-1))
+    
+    max_index = max(padma.index)
+    free_index = int(max_index + 1)
+    padma['Original_ID'] = padma['Reach_ID']
+    padma['Splits'] = 1
+    types = padma.dtypes
+    
+    for index, row in padma.copy().iterrows():
+        length = row['Length_km']
+        if length > L_max:
+            splits = int(length // L_max + 1)
+            start_id = row['Reach_ID']
+            successor_id  = row['Next_down']
+            Log_Q_avg = row['Log_Q_avg']
+            Log_Q_var = row['Log_Q_var']
+            
+            for split in np.arange(splits):
+                # needs reviewing, works based on trial and error more than logic
+                if split == 0:
+                    new_id = start_id
+                    next_down = free_id
+                elif split == max(np.arange(splits)):
+                    new_id = free_id
+                    free_id += 1
+                    next_down = successor_id
+                else:
+                    new_id = free_id
+                    free_id += 1
+                    next_down = free_id
+                if split == 0:
+                    new_index = index
+                else:
+                    new_index = free_index
+                    free_index += 1
+                
+                data = [new_id, next_down, length/splits, Log_Q_avg, Log_Q_var, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, start_id, splits]
+                padma.loc[new_index] = data
+                padma = padma.astype(types)
+    
+    return padma

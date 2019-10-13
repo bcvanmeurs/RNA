@@ -84,7 +84,7 @@ class RiverNetwork:
             Original_ID = row['Original_ID']
             G.nodes[Reach_ID]['area_sk']            = rain.loc[Original_ID]['area_sk'] / row['Splits']
             G.nodes[Reach_ID]['static_inflow']      = self.get_static_inflow(Reach_ID)
-            G.nodes[Reach_ID]['rain']               = rain.loc[Original_ID].drop(labels={'Reach_ID','area_sk'}).to_numpy()/row['Splits']
+            G.nodes[Reach_ID]['rain']               = rain.loc[Original_ID].drop(labels={'Reach_ID','area_sk'}).to_numpy()
 
         self.calculation_order = list(reversed(list(nx.edge_bfs(G,0,'reverse'))))
         G.remove_node(0) # remove virtual sink node

@@ -3,6 +3,7 @@ import pandas as pd
 import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns; sns.set()
 
 class RiverNetwork:
     def __init__(self, river_data, watershed_data,rain_data, x, speed, runoff_coeff = 0.5 , delta_t = 30, t_max = 1440):
@@ -52,6 +53,8 @@ class RiverNetwork:
             length = row['Length_km']
             G.nodes[row['Reach_ID']]['Length_km'] = length
             G.nodes[row['Reach_ID']]['Log_Q_avg'] = row['Log_Q_avg']
+            G.nodes[row['Reach_ID']]['Q_avg']     = 10**row['Log_Q_avg']
+            G.nodes[row['Reach_ID']]['Q_max']     = 10**row['Log_Q_avg'] * 10**row['Log_Q_var']
             G.nodes[row['Reach_ID']]['Log_Q_var'] = row['Log_Q_var']
             if (length < self.L_max) & (length > self.L_min):
                 G.nodes[row['Reach_ID']]['split'] = 0
@@ -66,16 +69,13 @@ class RiverNetwork:
                     sub_timestamps += 1
                 G.nodes[row['Reach_ID']]['C'] = calc_C(self.x, length * 1000, self.speed, self.delta_t/sub_timestamps) 
                 G.nodes[row['Reach_ID']]['sub_timestamps'] = sub_timestamps
-            
-            
-            
-
             if len(list(G.predecessors(row['Reach_ID']))) == 0:
                 G.nodes[row['Reach_ID']]['source'] = True
             else:
                 G.nodes[row['Reach_ID']]['source'] = False
             G.nodes[row['Reach_ID']]['Qin'] = np.zeros(t_max//delta_t )
             G.nodes[row['Reach_ID']]['Qout'] = np.zeros(t_max//delta_t )
+            G.nodes[row['Reach_ID']]['Qover'] = np.zeros(t_max//delta_t )
         
         # add rainfall data to nodes
             # preferably this loop is merged with the above one, but get_static_inflow needs flows from predecessors, the might not be set.
@@ -131,6 +131,7 @@ class RiverNetwork:
             node['Qout'][t] = Qin
         else:
             node['Qout'][t] = node['Qin'][t]*C['C1'] + node['Qin'][t-1]*C['C2'] + node['Qout'][t-1]*C['C3']
+        node['Qover'][t] =  max(node['Qout'][t] - node['Q_max'],0)
     
     def set_outflow_sub_timestamp(self, Reach_ID, node, t):
         C = node['C']
@@ -171,6 +172,7 @@ class RiverNetwork:
             #print(Qout_sub)
             node['Qin'][t]  = Qin_sub[-1]
             node['Qout'][t] = Qout_sub[-1]
+        node['Qover'][t] =  max(node['Qout'][t] - node['Q_max'],0)
             
     def get_outflow_predecessors(self,Reach_ID,t,split = 0, sub_timestamp = 0):
         G = self.G
@@ -222,9 +224,17 @@ class RiverNetwork:
         Q_rain = node['rain'] * node['area_sk'] * 1e3 / 3600 * self.runoff_coeff
         time = np.arange(0,self.t_max/30/2,0.5)
         fig = plt.figure()
-        plt.plot(time,Qin,'-')
-        plt.plot(time,Qout,'-')
-        plt.plot(time,Q_rain,'-')
+        fig.patch.set_alpha(0)
+        sns.lineplot(time, Qin, label='Inflow')
+        sns.lineplot(time, Qout, label='Outflow')
+        sns.lineplot(time, Q_rain, label='Rain')
+        sns.lineplot(time, np.full(len(time),node['Q_avg']),label='Average flow')
+        sns.lineplot(time, np.full(len(time),node['Q_max']),label='Maximum flow')
+        plt.fill_between(time,node['Q_max'],Qout, where=Qout>node['Q_max'],label = 'Overflow', color = 'r', alpha=0.2)
+        plt.xlabel('Time [h]')
+        plt.ylabel('Discharge [m$^3$/s]')
+        plt.title('Discharge graph of node: ' + str(Reach_ID))
+        plt.legend()
         plt.show()
 
 def calc_C(x,L,speed,dt):

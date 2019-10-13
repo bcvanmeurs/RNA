@@ -82,6 +82,7 @@ class RiverNetwork:
         for index, row in padma.iterrows():
             Reach_ID    = row['Reach_ID']
             Original_ID = row['Original_ID']
+            G.nodes[Reach_ID]['Original_ID']        = Original_ID
             G.nodes[Reach_ID]['area_sk']            = rain.loc[Original_ID]['area_sk'] / row['Splits']
             G.nodes[Reach_ID]['static_inflow']      = self.get_static_inflow(Reach_ID)
             G.nodes[Reach_ID]['rain']               = rain.loc[Original_ID].drop(labels={'Reach_ID','area_sk'}).to_numpy()
@@ -237,6 +238,22 @@ class RiverNetwork:
         plt.legend()
         plt.show()
 
+    def get_overflow(self):
+        data = {}
+        for Reach_ID in self.G.nodes:
+            node = self.G.node[Reach_ID]
+            Qover = node['Qover']
+            data[Reach_ID] = {**{i: el for i, el in enumerate(Qover)}, **{'Original_ID':node['Original_ID']}}
+        data = pd.DataFrame.from_dict( data , orient='index' ).astype({'Original_ID':int})
+        data = data.rename_axis('Reach_ID')
+        data = data.reset_index().\
+            sort_values(by=['Reach_ID','Original_ID']).\
+            drop_duplicates(subset='Original_ID', keep='last').\
+            drop('Reach_ID',axis=1).\
+            set_index('Original_ID').\
+            rename_axis('Reach_ID')
+        return data
+
 def calc_C(x,L,speed,dt):
     dt = dt*60
     k = L / speed
@@ -258,36 +275,35 @@ def split_reaches(padma,L_max):
     padma['Splits'] = 1
     types = padma.dtypes
     
-    for index, row in padma.copy().iterrows():
+    for index, row in padma[padma['Length_km'] > L_max].copy().iterrows():
         length = row['Length_km']
-        if length > L_max:
-            splits = int(length // L_max + 1)
-            start_id = row['Reach_ID']
-            successor_id  = row['Next_down']
-            Log_Q_avg = row['Log_Q_avg']
-            Log_Q_var = row['Log_Q_var']
+        splits = int(length // L_max + 1)
+        start_id = row['Reach_ID']
+        successor_id  = row['Next_down']
+        Log_Q_avg = row['Log_Q_avg']
+        Log_Q_var = row['Log_Q_var']
+        
+        for split in np.arange(splits):
+            # needs reviewing, works based on trial and error more than logic
+            if split == 0:
+                new_id = start_id
+                next_down = free_id
+            elif split == max(np.arange(splits)):
+                new_id = free_id
+                free_id += 1
+                next_down = successor_id
+            else:
+                new_id = free_id
+                free_id += 1
+                next_down = free_id
+            if split == 0:
+                new_index = index
+            else:
+                new_index = free_index
+                free_index += 1
             
-            for split in np.arange(splits):
-                # needs reviewing, works based on trial and error more than logic
-                if split == 0:
-                    new_id = start_id
-                    next_down = free_id
-                elif split == max(np.arange(splits)):
-                    new_id = free_id
-                    free_id += 1
-                    next_down = successor_id
-                else:
-                    new_id = free_id
-                    free_id += 1
-                    next_down = free_id
-                if split == 0:
-                    new_index = index
-                else:
-                    new_index = free_index
-                    free_index += 1
-                
-                data = [new_id, next_down, length/splits, Log_Q_avg, Log_Q_var, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, start_id, splits]
-                padma.loc[new_index] = data
-                padma = padma.astype(types)
+            data = [new_id, next_down, length/splits, Log_Q_avg, Log_Q_var, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, start_id, splits]
+            padma.at[new_index] = data
+            padma = padma.astype(types)
     
     return padma

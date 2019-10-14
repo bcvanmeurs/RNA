@@ -32,5 +32,5 @@ def get_watershed(spatial_index,geodataframe,startid):
             search_set.update(new_search_set)
             
     end = time.time()
-    print('Duration: '+ '{:.2f}'.format(end - start) + 's')
+    print('Duration: {:.2f}'.format(end - start) + 's')
     return network_set

@@ -56,7 +56,7 @@ class RiverNetwork:
             G.nodes[row['Reach_ID']]['Q_avg']     = 10**row['Log_Q_avg']
             G.nodes[row['Reach_ID']]['Q_max']     = 10**row['Log_Q_avg'] * 10**row['Log_Q_var']
             G.nodes[row['Reach_ID']]['Log_Q_var'] = row['Log_Q_var']
-            if (length < self.L_max) & (length > self.L_min):
+            if (length <= self.L_max) & (length >= self.L_min):
                 G.nodes[row['Reach_ID']]['split'] = 0
                 G.nodes[row['Reach_ID']]['C'] = calc_C(self.x, length * 1000, self.speed, self.delta_t) 
             if row['Splits'] > 1:

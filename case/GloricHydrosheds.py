@@ -27,10 +27,11 @@ def get_watershed(spatial_index,geodataframe,startid):
                 network_set.update(new_search_set)
             search_set.remove(arcid)
             i=i+1
-            print(i, end="\r")
+            print('\tReaches found: {}'.format(i), end="\r")
         if new_search_set:
             search_set.update(new_search_set)
             
+    print('\tTotal reaches found: {}'.format(i))
     end = time.time()
-    print('Duration: {:.2f}'.format(end - start) + 's')
+    print('\t\tDuration: {:.2f}'.format(end - start) + 's')
     return network_set

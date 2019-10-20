@@ -25,6 +25,7 @@ import GloricHydrosheds
 import geopandas as gp
 import time as time
 import os
+import pandas as pd
 
 dates = globals.dates()
 dates = dates[2:4]
@@ -66,6 +67,11 @@ def create_watershed():
         id_set = GloricHydrosheds.get_watershed(spatial_index,gloric,start_id)
         selection = gloric.loc[id_set]
         selection.to_file(destination_filename)
+
+    if not os.path.isfile('data_gloric/padma_gloric_1m3_final_no_geo.pkl'):
+        gp.read_file('data_gloric/padma_gloric_1m3_final.shp')\
+            .drop(columns={'geometry'})\
+            .to_pickle('data_gloric/padma_gloric_1m3_final_no_geo.pkl')
 
 
 river_location = 'data_gloric/padma_gloric_1m3_final.shp'
@@ -113,8 +119,6 @@ def create_micro_watersheds():
         i=0
         for segment_id in padma.index:
             riversegment = RiverSegment(segment_id)
-            #polygon = riversegment.get_area_pixels()
-            #padma.loc[segment_id,'polygon'] = [polygon]
             polygon = riversegment.get_area_polygon()
             padma.loc[segment_id,'polygon'] = polygon
             i = i + 1
@@ -128,7 +132,13 @@ def create_micro_watersheds():
         area = padma.copy()
         area = area.drop('geometry',axis=1)
         area = area.rename(columns={'polygon':'geometry'})
+        area['area_sk'] = area['geometry'].to_crs({'proj':'cea'})\
+                                           .map(lambda p: p.area / 10**6)
         area.to_file("data_gloric/areas_gloric.shp")
+        
+    if not os.path.isfile('data_gloric/areas_gloric_no_geo.pkl'):
+        gp.read_file('data_gloric/areas_gloric.shp')\
+            .drop(columns={'geometry'}).to_pickle('data_gloric/areas_gloric_no_geo.pkl')
 
 
 def create_micro_watersheds_pixels():
@@ -150,8 +160,6 @@ def create_micro_watersheds_pixels():
             riversegment = RiverSegment(segment_id)
             pixels = riversegment.get_area_pixels()
             padma.loc[segment_id,'pixels'] = [pixels]
-            #polygon = riversegment.get_area_polygon()
-            #padma.loc[segment_id,'polygon'] = polygon
             i = i + 1
             print("\tReach number: {} {:.2f}%".format(
                 str(i),
@@ -178,6 +186,7 @@ def create_geo_tifs():
     gpm_data = helper_functions.GPM(filenames_rain[0],bounds)
     newLats, newLons = gpm_data.coordinates(bounds)
     total_rain = np.zeros(gpm_data.get_crop().shape)
+    # todo needs file checker
     for filename in filenames_rain:
         gpm_data = helper_functions.GPM(filename,bounds)
         gpm_data.save_cropped_tif()
@@ -200,9 +209,9 @@ def rasterstats():
     import pandas as pd
     from itertools import repeat
     tif_list = helper_functions.get_resampled_tif_list(dates)
-    areas = pd.read_pickle('data_gloric/areas_gloric_pixel.pkl')[['Reach_ID','pixels']].to_numpy()
     tif_list_remaining = [file for file in tif_list if not os.path.exists(file[:-4] + '.csv')]
     if len(tif_list_remaining) > 0:
+        areas = pd.read_pickle('data_gloric/areas_gloric_pixel.pkl')[['Reach_ID','pixels']].to_numpy()
         print('\tSpinning up pool')
         pool=mp.Pool(mp.cpu_count()-2)
         pool.starmap(helper_functions.rasterstat,zip(repeat(areas),tif_list_remaining))
@@ -233,6 +242,10 @@ def merge_csvs():
                     .rename(columns ={'rain': csv[45:69]} )
             )
         data.to_csv('data_pmm/' + csvs[0][45:69] + '-' + csvs[-1][45:69] + '.csv')
+        data.set_index('Reach_ID')\
+            .join(pd.read_pickle('data_gloric/areas_gloric_no_geo.pkl').set_index('Reach_ID').area_sk)\
+            .reset_index()\
+            .to_pickle('data_pmm/' + csvs[0][45:69] + '-' + csvs[-1][45:69] + '.pkl')
 
 
 def sum_csv():
@@ -241,7 +254,7 @@ def sum_csv():
     if not os.path.exists('data_pmm/totals-' + csvs[0][45:69] + '-' + csvs[-1][45:69] + '.csv'):
         data = pd.read_csv('data_pmm/' + csvs[0][45:69] + '-' + csvs[-1][45:69] + '.csv')
         data = data.set_index('Reach_ID').sum(axis='columns').rename('total_rain')
-            #data.to_csv('data_pmm/totals-' + csvs[0][45:69] + '-' + csvs[-1][45:69] + '.csv',header=True)
+        data.to_csv('data_pmm/totals-' + csvs[0][45:69] + '-' + csvs[-1][45:69] + '.csv',header=True)
 
         areas = gp.read_file('data_gloric/areas_gloric.shp')\
                     .set_index('Reach_ID',drop=False)\
@@ -259,7 +272,7 @@ if __name__ == "__main__":
     create_micro_watersheds()
     create_micro_watersheds_pixels()
     ftp()
-    create_geo_tifs()
+    # create_geo_tifs() # -> needs file checker
     resample_geo_tifs()    
     rasterstats()
     # check_csvs()

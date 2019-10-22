@@ -94,7 +94,7 @@ def pmm_ftp(date,filename):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    ftp = FTP('arthurhou.pps.eosdis.nasa.gov', user = '**fill_in**', passwd='**fill_in**')  
+    ftp = FTP('arthurhou.pps.eosdis.nasa.gov', user = os.environ['pmmuser'], passwd=os.environ['pmmpass'])  
     ftp.cwd('gpmdata/'+ date +'/imerg')
     if True: #not os.path.isfile(local_filename):
         with open(local_filename, 'wb') as f:
@@ -107,7 +107,7 @@ def pmm_ftp_batch(date):
         os.makedirs(directory)
 
         # add force mode
-        ftp = FTP('arthurhou.pps.eosdis.nasa.gov', user = '**fill_in**', passwd='**fill_in**')  
+        ftp = FTP('arthurhou.pps.eosdis.nasa.gov', user = os.environ['pmmuser'], passwd=os.environ['pmmpass'])  
         ftp.cwd('gpmdata/'+ date +'/imerg')
         filenames = ftp.nlst()
         filenames.sort()

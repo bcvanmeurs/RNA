@@ -224,19 +224,19 @@ class RiverNetwork:
         Qout = node['Qout']
         Q_rain = node['rain'] * node['area_sk'] * 1e3 / 3600 * self.runoff_coeff
         time = np.arange(0,self.t_max/30/2,0.5)
-        fig = plt.figure()
+        fig, ax = plt.subplots()
         fig.patch.set_alpha(0)
         sns.lineplot(time, Qin, label='Inflow')
         sns.lineplot(time, Qout, label='Outflow')
         sns.lineplot(time, Q_rain[0:len(time)], label='Rain')
         sns.lineplot(time, np.full(len(time),node['Q_avg']),label='Average flow')
         sns.lineplot(time, np.full(len(time),node['Q_max']),label='Maximum flow')
-        plt.fill_between(time,node['Q_max'],Qout, where=Qout>node['Q_max'],label = 'Overflow', color = 'r', alpha=0.2)
+        plt.fill_between(time,node['Q_max'],Qout, where=Qout>=node['Q_max'],label = 'Overflow', color = 'r', alpha=0.2)
         plt.xlabel('Time [h]')
         plt.ylabel('Discharge [m$^3$/s]')
         plt.title('Discharge graph of node: ' + str(Reach_ID))
         plt.legend()
-        plt.show()
+        return(fig,ax)
 
     def get_overflow(self):
         data = {}

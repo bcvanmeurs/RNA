@@ -25,6 +25,7 @@ class RiverNetwork:
          
         self.x = x
         self.speed = speed
+        t_max = t_max + delta_t # extra timestep for initialisation
         self.time = time = np.arange(0,t_max,delta_t)
         self.t_max = t_max
         self.delta_t = delta_t
@@ -85,7 +86,7 @@ class RiverNetwork:
             G.nodes[Reach_ID]['Original_ID']        = Original_ID
             G.nodes[Reach_ID]['area_sk']            = rain.loc[Original_ID]['area_sk'] / row['Splits']
             G.nodes[Reach_ID]['static_inflow']      = self.get_static_inflow(Reach_ID)
-            G.nodes[Reach_ID]['rain']               = rain.loc[Original_ID].drop(labels={'Reach_ID','area_sk'}).to_numpy()
+            G.nodes[Reach_ID]['rain']               = np.hstack(([0.],rain.loc[Original_ID].drop(labels={'Reach_ID','area_sk'}).to_numpy()))
 
         self.calculation_order = list(reversed(list(nx.edge_bfs(G,0,'reverse'))))
         G.remove_node(0) # remove virtual sink node
@@ -96,9 +97,13 @@ class RiverNetwork:
             self.set_outflow(Reach_ID,0)
 
     def calculate_flows(self):
-        for t in np.arange(self.t_max//self.delta_t):
+        timesteps = np.arange(self.t_max//self.delta_t)
+        max_t = max(timesteps)
+        for t in timesteps:
+            print('Working on time step: {:02} of {:02}, {:5.1f}%'.format(t,max_t,t/max_t*100),end='\r')
             for Reach_ID, y, z in self.calculation_order:
                 self.set_outflow(Reach_ID,t)
+        print(' '*50,end='\r')
 
 
     def set_outflow(self, Reach_ID, t):
@@ -115,22 +120,23 @@ class RiverNetwork:
         # rain is in mm/hour
         # area is in square km
         # convert to cubic meters per half hour
-
-        Q_rain = node['rain'][t] * node['area_sk'] * 1e3 / 3600 * self.runoff_coeff
-        Q_static = node['static_inflow']
-
-        if node['source'] == True:
-            # No previous node inflow
-            Qin = Q_rain + Q_static
         
-        else: # if not source node
-            Q_predecessor = self.get_outflow_predecessors(Reach_ID,t)
-            Qin = Q_rain + Q_static + Q_predecessor
-
-        node['Qin'][t] = Qin
         if t == 0:
-            node['Qout'][t] = Qin
+            node['Qin'][t]  = node['Q_avg']
+            node['Qout'][t] = node['Q_avg']
         else:
+            Q_rain = node['rain'][t] * node['area_sk'] * 1e3 / 3600 * self.runoff_coeff
+            Q_static = node['static_inflow']
+
+            if node['source'] == True:
+                # No previous node inflow
+                Qin = Q_rain + Q_static
+            
+            else: # if not source node
+                Q_predecessor = self.get_outflow_predecessors(Reach_ID,t)
+                Qin = Q_rain + Q_static + Q_predecessor
+
+            node['Qin'][t] = Qin
             node['Qout'][t] = node['Qin'][t]*C['C1'] + node['Qin'][t-1]*C['C2'] + node['Qout'][t-1]*C['C3']
         node['Qover'][t] =  max(node['Qout'][t] - node['Q_max'],0)
     
@@ -142,13 +148,8 @@ class RiverNetwork:
         Q_static = node['static_inflow']
 
         if t == 0:
-            if node['source'] == True:
-                Qin = Q_rain + Q_static 
-            else:
-                Q_predecessor = self.get_outflow_predecessors(Reach_ID,t)
-                Qin = Q_rain + Q_static + Q_predecessor
-            node['Qin'][t] = Qin
-            node['Qout'][t] = Qin
+            node['Qin'][t]  = node['Q_avg']
+            node['Qout'][t] = node['Q_avg']
         else:
             Qin_sub     = np.zeros(sub_timestamps + 1)
             Qin_sub[0]  = node['Qin'][t-1]

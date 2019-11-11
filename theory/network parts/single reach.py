@@ -60,7 +60,7 @@ plt.ylabel('Flow, $Q$ [m$^3$/s]')
 plt.xlabel('Time [h]')
 plt.legend()
 # save to file
-plt.savefig('../thesis/report/figs/1reach.pdf', bbox_inches = 'tight')
+#plt.savefig('../thesis/report/figs/1reach.pdf', bbox_inches = 'tight')
 plt.savefig('../thesis/report/figs/1reach.pgf', bbox_inches = 'tight')
 
 # +
@@ -71,7 +71,7 @@ length = 50
 t = range(0,length,1)
 I = np.append(I,np.full((1,length - len(I)),22))
 
-fig = plt.figure(figsize=(5,3),dpi=150)
+fig = plt.figure(figsize=(5,2.5),dpi=150)
 ax = fig.add_subplot(111)
 for axis in ['top','bottom','left','right']:
     ax.spines[axis].set_linewidth(0.5)
@@ -90,14 +90,14 @@ plt.ylabel('Flow, $Q$ [m$^3$/s]')
 plt.xlabel('Time [h]')
 plt.legend()
 # save to file
-plt.savefig('../thesis/report/figs/1reachk.pdf', bbox_inches = 'tight')
+#plt.savefig('../thesis/report/figs/1reachk.pdf', bbox_inches = 'tight')
 plt.savefig('../thesis/report/figs/1reachk.pgf', bbox_inches = 'tight')
 
 # +
 t = df.index.values
 I = np.array(df['Inflow'])
 
-fig = plt.figure(figsize=(5,3),dpi=150)
+fig = plt.figure(figsize=(5,2.5),dpi=150)
 ax = fig.add_subplot(111)
 for axis in ['top','bottom','left','right']:
     ax.spines[axis].set_linewidth(0.5)
@@ -116,6 +116,9 @@ plt.ylabel('Flow, $Q$ [m$^3$/s]')
 plt.xlabel('Time [h]')
 plt.legend()
 # save to file
-plt.savefig('../thesis/report/figs/1reachx.pdf', bbox_inches = 'tight')
+#plt.savefig('../thesis/report/figs/1reachx.pdf', bbox_inches = 'tight')
 plt.savefig('../thesis/report/figs/1reachx.pgf', bbox_inches = 'tight')
 plt.xlim(2,20)
+# -
+
+

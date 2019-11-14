@@ -34,26 +34,26 @@ The third section shows some code to extract the Ganges Brahmaputra watershed fr
 .. toctree::
    :maxdepth: 2
    :caption: Basic Parts:
-   
-   single-reach.ipynb
-   single-confluence.ipynb
-   single-bifurcation.ipynb
-   model-verification.ipynb
-   
+
+   A-single-reach.ipynb
+   A-single-confluence.ipynb
+   A-single-bifurcation.ipynb
+   A-model-verification.ipynb
+
 .. toctree::
    :maxdepth: 2
    :caption: Networks:
-   
-   network-structure-1.ipynb
-   network-structure-2.ipynb
+
+   B-network-structure-1.ipynb
+   B-network-structure-2.ipynb
 
 .. toctree::
    :maxdepth: 2
    :caption: Ganges Brahmaputra GIS:
-   
-   gis/Create-hydroshed.ipynb
-   gis/Extract-regions-HydroSHEDS.ipynb
-   gis/plot-watershed.ipynb
+
+   C-gis/Create-hydroshed.ipynb
+   C-gis/Extract-regions-HydroSHEDS.ipynb
+   C-gis/plot-watershed.ipynb
 
 
 .. Indices and tables

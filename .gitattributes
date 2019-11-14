@@ -1,3 +1,6 @@
 *.ipynb filter=nbstripout
 *.ipynb diff=ipynb
-docs/gis/** filter= diff=
+docs/C-gis/** filter= diff=
+docs/D-simulation/** filter= diff=
+docs/Z-figurers/** filter= diff=
+

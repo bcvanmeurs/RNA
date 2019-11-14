@@ -2,8 +2,8 @@
 *.pyc
 .vscode
 !docs/*.ipynb
-!docs/gis/*.ipynb
-!docs/ijssel/*.ipynb
+!docs/C-gis/*.ipynb
+!docs/A-ijssel/*.ipynb
 _build
 data_gloric
 data_pmm

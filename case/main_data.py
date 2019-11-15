@@ -29,7 +29,6 @@ import pandas as pd
 
 dates = globals.dates()
 dates = dates[2:4]
-print('Dates used: ' + str(dates))
 bounds = globals.bounds(2)
 
 
@@ -266,6 +265,7 @@ def sum_csv():
 
 if __name__ == "__main__":
     print('Proces started')
+    print('Dates used: ' + str(dates))
     hydrosheds()
     create_watershed()
     mask_direction_data()

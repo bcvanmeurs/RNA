@@ -51,7 +51,7 @@ The third section shows some code to extract the Ganges Brahmaputra watershed fr
    :maxdepth: 2
    :caption: Ganges Brahmaputra GIS:
 
-   C-gis/Create-hydroshed.ipynb
+   C-gis/01-create-hydroshed.ipynb
    C-gis/Extract-regions-HydroSHEDS.ipynb
    C-gis/plot-watershed.ipynb
 

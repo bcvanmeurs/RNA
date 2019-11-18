@@ -6,16 +6,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns; sns.set()
 
 class RiverNetwork:
-    def __init__(self, river_data, watershed_data,rain_data, x, speed, runoff_coeff = 0.5 , delta_t = 30, t_max = 1440):
+    def __init__(self, river_data, rain_data, x, speed, runoff_coeff = 0.5 , delta_t = 30, t_max = 1440):
         if isinstance(river_data,str):
             padma = pd.read_pickle(river_data)
         elif isinstance(river_data,pd.DataFrame): 
             padma = river_data
-        
-        # if isinstance(watershed_data,str):
-        #     watersheds = pd.read_pickle(watershed_data)
-        # elif isinstance(watershed_data,pd.DataFrame): 
-        #     watersheds = watershed_data
         
         if isinstance(rain_data,str):
             rain = pd.read_pickle(rain_data)

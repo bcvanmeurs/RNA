@@ -93,8 +93,54 @@ def plot_map(facecolor = False, figsize=(4,3)):
 def plot_river_map(dataframe,figsize=(4,3)):
     fig,ax = plot_map(figsize)
 
-    crs_proj4 = ax.projection.proj4_init
-    dataframe.to_crs(crs_proj4).plot(ax=ax,color='b',linewidth=0.15)
+    range_min = 0.025
+    range_max = 0.5
+    logflow = dataframe['Log_Q_avg']
+    flow = 10**logflow
+    logflow = np.log10(flow + 1)
+    width = ((logflow - logflow.min())*(range_max - range_min)) / (logflow.max()-logflow.min()) + range_min
 
+    crs_proj4 = ax.projection.proj4_init
+    dataframe.to_crs(crs_proj4).plot(ax=ax,color='b',linewidth=width,legend=True)
     
+    from matplotlib.lines import Line2D
+    custom_lines = [Line2D([0], [0], color='b', lw=0.5),]
+    ax.legend(custom_lines, ['River reach'], prop={'size': 4})
+
+
+    return(fig,ax)
+
+def plot_river_map_2(dataframe, split = 200, figsize=(4,3)):
+    fig,ax = plot_map(figsize)
+
+    logsplit = np.log10(split)
+    range_min = 0.025
+    range_max = 0.4
+    logflow = dataframe['Log_Q_avg']
+    flow = 10**logflow
+    logflow = np.log10(flow + 1)
+    width = ((logflow - logflow.min())*(range_max - range_min)) / (logflow.max()-logflow.min()) + range_min
+    dataframe['linewidth'] = width
+
+    crs_proj4 = ax.projection.proj4_init
+    dataframe = dataframe.to_crs(crs_proj4)
+    
+    data1 = dataframe[dataframe['Log_Q_avg'] <= logsplit]
+    data1.plot(ax=ax,color='b',linewidth=data1['linewidth'],legend=True)
+
+    data2 = dataframe[dataframe['Log_Q_avg'] > logsplit]
+    data2.plot(ax=ax,color='r',linewidth=data2['linewidth'],legend=True)
+    
+    from matplotlib.lines import Line2D
+    custom_lines = [Line2D([0], [0], color='b', lw=0.3),
+                    Line2D([0], [0], color='r', lw=0.5),]
+    ax.legend(custom_lines, ['River reach','Avg flow > ' + str(split) + ' m$^3$/s'], prop={'size': 4})
+
+    bounds = globals.bounds(0.2)
+    west, south, east, north = bounds
+    north += 1
+    south -= 1.2
+    ax.set_extent([west, east, south, north])
+    ax.set_yticks(range(int(np.ceil(south)), int(np.floor(north))+1, 2), crs=ccrs.PlateCarree())
+
     return(fig,ax)

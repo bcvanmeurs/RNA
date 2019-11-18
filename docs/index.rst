@@ -55,6 +55,11 @@ The third section shows some code to extract the Ganges Brahmaputra watershed fr
    C-gis/Extract-regions-HydroSHEDS.ipynb
    C-gis/plot-watershed.ipynb
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Simulation:
+
+   D-simulation/01-modelling.ipynb
 
 .. Indices and tables
 .. ==================

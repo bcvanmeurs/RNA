@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns; sns.set()
 
 class RiverNetwork:
-    def __init__(self, river_data, rain_data, x, speed, runoff_coeff = 0.5 , delta_t = 30, t_max = 1440):
+    def __init__(self, river_data, rain_data, delta_t = 30, t_max = 1440):
         if isinstance(river_data,str):
             padma = pd.read_pickle(river_data)
         elif isinstance(river_data,pd.DataFrame): 
@@ -16,25 +16,27 @@ class RiverNetwork:
             rain = pd.read_pickle(rain_data)
         elif isinstance(rain_data,pd.DataFrame): 
             rain = rain_data
-        rain = rain.set_index('Reach_ID',drop=False)
+        self.rain = rain.set_index('Reach_ID',drop=False)
          
-        self.x = x
-        self.speed = speed
         t_max = t_max + delta_t # extra timestep for initialisation
         self.time = time = np.arange(0,t_max,delta_t)
         self.t_max = t_max
         self.delta_t = delta_t
         # in km
-        self.L_max = delta_t * 60 * speed / (2 * x) / 1000
-        self.L_min = delta_t * 60 * speed / (2 * (1-x)) / 1000
-        self.runoff_coeff = runoff_coeff
 
-        padma_original = padma.copy()
-        padma = split_reaches(padma,self.L_max)
 
+        self.padma_original = padma.copy()
+        #self.create_graph(x)
         # should check if ids in files match!
         # set sink node
 
+    def create_graph(self, x, speed, base_load_factor, max_capacity_factor):
+        self.x = x
+        self.speed = speed
+        self.L_max = self.delta_t * 60 * speed / (2 * x) / 1000
+        self.L_min = self.delta_t * 60 * speed / (2 * (1-x)) / 1000
+
+        padma = split_reaches(self.padma_original,self.L_max)
         G = nx.DiGraph()
         G.add_nodes_from(padma['Reach_ID'])
 
@@ -49,8 +51,8 @@ class RiverNetwork:
             length = row['Length_km']
             G.nodes[row['Reach_ID']]['Length_km'] = length
             G.nodes[row['Reach_ID']]['Log_Q_avg'] = row['Log_Q_avg']
-            G.nodes[row['Reach_ID']]['Q_avg']     = 10**row['Log_Q_avg']
-            G.nodes[row['Reach_ID']]['Q_max']     = 10**row['Log_Q_avg'] * 10**row['Log_Q_var']
+            G.nodes[row['Reach_ID']]['Q_avg']     = 10**row['Log_Q_avg'] * base_load_factor
+            G.nodes[row['Reach_ID']]['Q_max']     = 10**row['Log_Q_avg'] * max_capacity_factor * 10**row['Log_Q_var']
             G.nodes[row['Reach_ID']]['Log_Q_var'] = row['Log_Q_var']
             if (length <= self.L_max) & (length >= self.L_min):
                 G.nodes[row['Reach_ID']]['split'] = 0
@@ -69,9 +71,9 @@ class RiverNetwork:
                 G.nodes[row['Reach_ID']]['source'] = True
             else:
                 G.nodes[row['Reach_ID']]['source'] = False
-            G.nodes[row['Reach_ID']]['Qin'] = np.zeros(t_max//delta_t )
-            G.nodes[row['Reach_ID']]['Qout'] = np.zeros(t_max//delta_t )
-            G.nodes[row['Reach_ID']]['Qover'] = np.zeros(t_max//delta_t )
+            G.nodes[row['Reach_ID']]['Qin'] = np.zeros(self.t_max//self.delta_t )
+            G.nodes[row['Reach_ID']]['Qout'] = np.zeros(self.t_max//self.delta_t )
+            G.nodes[row['Reach_ID']]['Qover'] = np.zeros(self.t_max//self.delta_t )
         
         # add rainfall data to nodes
             # preferably this loop is merged with the above one, but get_static_inflow needs flows from predecessors, the might not be set.
@@ -79,9 +81,9 @@ class RiverNetwork:
             Reach_ID    = row['Reach_ID']
             Original_ID = row['Original_ID']
             G.nodes[Reach_ID]['Original_ID']        = Original_ID
-            G.nodes[Reach_ID]['area_sk']            = rain.loc[Original_ID]['area_sk'] / row['Splits']
+            G.nodes[Reach_ID]['area_sk']            = self.rain.loc[Original_ID]['area_sk'] / row['Splits']
             G.nodes[Reach_ID]['static_inflow']      = self.get_static_inflow(Reach_ID)
-            G.nodes[Reach_ID]['rain']               = np.hstack(([0.],rain.loc[Original_ID].drop(labels={'Reach_ID','area_sk'}).to_numpy()))
+            G.nodes[Reach_ID]['rain']               = np.hstack(([0.],self.rain.loc[Original_ID].drop(labels={'Reach_ID','area_sk'}).to_numpy()))
 
         self.calculation_order = list(reversed(list(nx.edge_bfs(G,0,'reverse'))))
         G.remove_node(0) # remove virtual sink node
@@ -91,7 +93,11 @@ class RiverNetwork:
         for Reach_ID, y, z in self.calculation_order:
             self.set_outflow(Reach_ID,0)
 
-    def calculate_flows(self):
+    def calculate_flows(self, x, speed, runoff_coeff, base_load_factor, max_capacity_factor, node_list = False):
+        
+        self.runoff_coeff = runoff_coeff                # only used in calculation
+        self.create_graph(x, speed, base_load_factor, max_capacity_factor)
+
         timesteps = np.arange(self.t_max//self.delta_t)
         max_t = max(timesteps)
         for t in timesteps:
@@ -100,6 +106,14 @@ class RiverNetwork:
                 self.set_outflow(Reach_ID,t)
         print(' '*50,end='\r')
 
+        if node_list:
+            return self.get_results_selection(node_list)
+
+    def get_results_selection(self, node_list):
+        results = {}
+        for node in node_list:
+            results[node] = self.G.nodes[node]
+        return results
 
     def set_outflow(self, Reach_ID, t):
         node = self.G.nodes[Reach_ID]
@@ -207,8 +221,8 @@ class RiverNetwork:
         total_inflow = 0
         G = self.G
         for predecessor in G.predecessors(Reach_ID):
-            total_inflow = total_inflow + (10 ** G.nodes[predecessor]['Log_Q_avg'])
-        static_inflow = (10 ** G.nodes[Reach_ID]['Log_Q_avg']) - total_inflow
+            total_inflow = total_inflow + (G.nodes[predecessor]['Q_avg'] )
+        static_inflow = (G.nodes[Reach_ID]['Q_avg']) - total_inflow
         return static_inflow
 
     def get_node(self,Reach_ID):

@@ -58,6 +58,7 @@ The third section shows some code to extract the Ganges Brahmaputra watershed fr
    :caption: Simulation:
 
    D-simulation/01-modelling.ipynb
+   D-simulation/02-plotting-results.ipynb
 
 .. Indices and tables
 .. ==================

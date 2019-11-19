@@ -2,5 +2,5 @@
 *.ipynb diff=ipynb
 docs/C-gis/** filter= diff=
 docs/D-simulation/** filter= diff=
-docs/Z-figurers/** filter= diff=
+docs/Z-figures/** filter= diff=
 

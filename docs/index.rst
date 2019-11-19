@@ -59,6 +59,13 @@ The third section shows some code to extract the Ganges Brahmaputra watershed fr
 
    D-simulation/01-modelling.ipynb
    D-simulation/02-plotting-results.ipynb
+   
+.. toctree::
+   :maxdepth: 2
+   :caption: Figures in thesis:
+    
+   A-chapter-5-figs.ipynb
+   Z-figures/chapter-7-figs.ipynb
 
 .. Indices and tables
 .. ==================

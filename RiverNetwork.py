@@ -157,6 +157,7 @@ class RiverNetwork:
     def draw_Qin(self,figsize=(8,8),only_sources=False, no = {}):
         G = self.G
         fig = plt.figure(figsize=figsize)#,dpi=300)
+        ax = plt.subplot()
         if only_sources == True:
             for node_str in self.sourcenodes:
                 flow = G.nodes[node_str]['Qin']
@@ -175,6 +176,8 @@ class RiverNetwork:
         plt.ylabel('Flow, $Q$ [m$^3$/s]')
         plt.xlabel('Timesteps')
         plt.legend()
+
+        return fig,ax
         
     def draw_Qout(self):
         G = self.G

@@ -5,6 +5,7 @@
 !docs/C-gis/*.ipynb
 !docs/A-ijssel/*.ipynb
 !docs/D-simulation/*.ipynb
+!docs/Z-figures/*.ipynb
 _build
 data_gloric
 data_pmm

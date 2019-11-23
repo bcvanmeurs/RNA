@@ -114,7 +114,7 @@ class RiverNetwork:
         C = node['C']
         # rain is in mm/hour
         # area is in square km
-        # convert to cubic meters per half hour
+        # convert to cubic meters per second 
         
         if t == 0:
             node['Qin'][t]  = node['Q_avg']

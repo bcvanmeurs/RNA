@@ -59,6 +59,7 @@ The third section shows some code to extract the Ganges Brahmaputra watershed fr
 
    D-simulation/01-modelling.ipynb
    D-simulation/02-plotting-results.ipynb
+   D-simulation/03-correlation.ipynb
    
 .. toctree::
    :maxdepth: 2
